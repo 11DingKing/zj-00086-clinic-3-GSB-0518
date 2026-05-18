@@ -33,6 +33,9 @@ export class Bill {
   @Column({ nullable: true })
   paidAt?: Date;
 
+  @Column({ nullable: true })
+  refundedAt?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 
