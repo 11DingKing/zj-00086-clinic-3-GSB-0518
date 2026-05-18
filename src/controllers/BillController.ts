@@ -1,11 +1,11 @@
-import { Context } from 'koa';
-import { AppDataSource } from '../data-source';
-import { Bill } from '../entities';
-import { BillService } from '../services';
+import { Context } from "koa";
+import { AppDataSource } from "../data-source";
+import { Bill } from "../entities";
+import { BillPaymentService } from "../services";
 
 export class BillController {
   private billRepository = AppDataSource.getRepository(Bill);
-  private billService = new BillService();
+  private billService = new BillPaymentService();
 
   constructor() {
     this.getAllBills = this.getAllBills.bind(this);
@@ -27,7 +27,7 @@ export class BillController {
    */
   async getAllBills(ctx: Context) {
     const bills = await this.billRepository.find({
-      relations: ['visit', 'visit.appointment', 'visit.appointment.patient']
+      relations: ["visit", "visit.appointment", "visit.appointment.patient"],
     });
     ctx.body = bills;
   }
@@ -56,12 +56,12 @@ export class BillController {
     const id = parseInt(ctx.params.id);
     const bill = await this.billRepository.findOne({
       where: { id },
-      relations: ['visit', 'visit.appointment', 'visit.appointment.patient']
+      relations: ["visit", "visit.appointment", "visit.appointment.patient"],
     });
-    
+
     if (!bill) {
       ctx.status = 404;
-      ctx.body = { message: '账单不存在' };
+      ctx.body = { message: "账单不存在" };
       return;
     }
     ctx.body = bill;

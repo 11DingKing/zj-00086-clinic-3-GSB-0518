@@ -1,5 +1,5 @@
 import { AppDataSource } from '../data-source';
-import { MedicalRecord, Patient, Visit } from '../entities';
+import { MedicalRecord, Patient } from '../entities';
 
 export class MedicalRecordService {
   private medicalRecordRepository = AppDataSource.getRepository(MedicalRecord);
