@@ -1,14 +1,18 @@
-import { Context } from 'koa';
-import { AppDataSource } from '../data-source';
-import { Visit, Prescription, Medicine } from '../entities';
-import { MedicineService, MedicalRecordService, BillService } from '../services';
+import { Context } from "koa";
+import { AppDataSource } from "../data-source";
+import { Visit, Prescription, Medicine } from "../entities";
+import {
+  MedicineService,
+  MedicalRecordService,
+  BillCreationService,
+} from "../services";
 
 export class VisitController {
   private visitRepository = AppDataSource.getRepository(Visit);
   private prescriptionRepository = AppDataSource.getRepository(Prescription);
   private medicineService = new MedicineService();
   private medicalRecordService = new MedicalRecordService();
-  private billService = new BillService();
+  private billCreationService = new BillCreationService();
 
   constructor() {
     this.getAllVisits = this.getAllVisits.bind(this);
@@ -30,7 +34,12 @@ export class VisitController {
    */
   async getAllVisits(ctx: Context) {
     const visits = await this.visitRepository.find({
-      relations: ['appointment', 'appointment.patient', 'appointment.doctor', 'prescriptions']
+      relations: [
+        "appointment",
+        "appointment.patient",
+        "appointment.doctor",
+        "prescriptions",
+      ],
     });
     ctx.body = visits;
   }
@@ -59,12 +68,18 @@ export class VisitController {
     const id = parseInt(ctx.params.id);
     const visit = await this.visitRepository.findOne({
       where: { id },
-      relations: ['appointment', 'appointment.patient', 'appointment.doctor', 'prescriptions', 'prescriptions.medicine']
+      relations: [
+        "appointment",
+        "appointment.patient",
+        "appointment.doctor",
+        "prescriptions",
+        "prescriptions.medicine",
+      ],
     });
-    
+
     if (!visit) {
       ctx.status = 404;
-      ctx.body = { message: '就诊记录不存在' };
+      ctx.body = { message: "就诊记录不存在" };
       return;
     }
     ctx.body = visit;
@@ -136,7 +151,10 @@ export class VisitController {
 
     for (const prescData of prescriptionsData) {
       try {
-        await this.medicineService.checkAndDeductStock(prescData.medicineId, prescData.quantity);
+        await this.medicineService.checkAndDeductStock(
+          prescData.medicineId,
+          prescData.quantity,
+        );
       } catch (error: any) {
         ctx.status = 400;
         ctx.body = { message: error.message };
@@ -146,26 +164,29 @@ export class VisitController {
       const prescription = this.prescriptionRepository.create({
         visitId: visit.id,
         ...prescData,
-        totalPrice: prescData.unitPrice * prescData.quantity
+        totalPrice: prescData.unitPrice * prescData.quantity,
       });
       await this.prescriptionRepository.save(prescription);
     }
 
     const summary = `诊断：${visitData.diagnosisName}，主诉：${visitData.chiefComplaint}`;
-    const savedVisit = await this.visitRepository.findOne({ 
-      where: { id: visit.id }, 
-      relations: ['appointment', 'appointment.patient']
+    const savedVisit = await this.visitRepository.findOne({
+      where: { id: visit.id },
+      relations: ["appointment", "appointment.patient"],
     });
     if (savedVisit) {
       await this.medicalRecordService.createMedicalRecord(
         savedVisit.appointment.patient.id,
         visit.id,
-        summary
+        summary,
       );
     }
 
-    await this.billService.createBill(visit.id);
+    await this.billCreationService.createBill(visit.id);
 
-    ctx.body = await this.visitRepository.findOne({ where: { id: visit.id }, relations: ['prescriptions']});
+    ctx.body = await this.visitRepository.findOne({
+      where: { id: visit.id },
+      relations: ["prescriptions"],
+    });
   }
 }
